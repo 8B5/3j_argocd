@@ -8,8 +8,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: deploy-backend
-  minReplicas: 4
-  maxReplicas: 8
+  minReplicas: 3
+  maxReplicas: 6
   metrics:
   # CPU 사용률 50%
   - type: Resource
