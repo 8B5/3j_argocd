@@ -17,11 +17,11 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 30
+        averageUtilization: 50
   # 2. 메모리 메트릭: 안정성 및 Crash 방지 (60%를 넘기면 스케일링 시작)
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 30
+        averageUtilization: 50
