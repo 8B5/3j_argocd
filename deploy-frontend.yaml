@@ -13,6 +13,9 @@ spec:
       labels:
         app: frontend
     spec:
+      imagePullSecrets:
+        - name: ecr-secret
+      
       containers:
       - name: board-frontend
         image: 566644819993.dkr.ecr.ap-northeast-2.amazonaws.com/project_nginx:v2
@@ -35,10 +38,11 @@ spec:
           timeoutSeconds: 3
           failureThreshold: 3
         
+        
         resources:
           requests:
             cpu: "100m"
             memory: "64Mi"
           limits:
-            cpu: "100m"
+            cpu: "100m"  
             memory: "128Mi"
