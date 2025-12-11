@@ -38,8 +38,8 @@ spec:
           # Redis 설정(200mb)보다 약간 여유를 둬야 OOM Kill을 피합니다.
           resources:
             requests:
-              memory: "400Mi"
-              cpu: "800m"
+              memory: "300Mi"
+              cpu: "600m"
             limits:
               memory: "400Mi"
               cpu: "800m"
