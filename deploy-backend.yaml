@@ -15,6 +15,7 @@ spec:
       labels:
         app: backend
     spec:
+      # [1] 토폴로지 분산: 노드 간 개수 차이를 1 이하로 칼같이 맞춰라 (수학적 분산)
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
@@ -23,27 +24,25 @@ spec:
             matchLabels:
               app: backend
 
+      # [2] 안티 어피니티: 같은 파드가 있는 곳은 되도록 피해라 (물리적 거리두기)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: backend
+                topologyKey: kubernetes.io/hostname
+
       imagePullSecrets:
         - name: ecr-secret
 
+      # (아래 Init Container, Containers 등은 기존과 동일)
       initContainers:
         - name: wait-for-redis
           image: busybox:1.28
-          command:
-            - sh
-            - -c
-            - |
-              echo "Waiting for Redis..."
-              for i in $(seq 1 60); do
-                if nc -z redis-session-master 6379; then
-                  echo "Redis is ready!"
-                  exit 0
-                fi
-                echo "Attempt $i/60..."
-                sleep 2
-              done
-              echo "Timeout waiting for Redis"
-              exit 1
+          command: ["sh", "-c", "until nc -z redis-session-master 6379; do sleep 2; done;"]
 
       containers:
         - name: board-backend
@@ -51,7 +50,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
-
+          # ... (환경변수, 리소스, 프로브 설정 기존 유지) ...
           env:
             - name: REDIS_HOST
               value: "redis-session-master"
@@ -74,7 +73,6 @@ spec:
               value: "DEBUG"
             - name: LOGGING_LEVEL_ROOT
               value: "DEBUG"
-
           resources:
             requests:
               cpu: "400m"
@@ -82,7 +80,6 @@ spec:
             limits:
               cpu: "600m"
               memory: "600Mi"
-
           readinessProbe:
             httpGet:
               path: /
@@ -91,7 +88,6 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 7
             failureThreshold: 3
-
           livenessProbe:
             httpGet:
               path: /
