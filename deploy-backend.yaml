@@ -15,86 +15,88 @@ spec:
       labels:
         app: backend
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: backend
+
       imagePullSecrets:
         - name: ecr-secret
-      
-      # ===== 간소화된 Init Container =====
+
       initContainers:
-      - name: wait-for-redis
-        image: busybox:1.28
-        command:
-        - sh
-        - -c
-        - |
-          echo "Waiting for Redis..."
-          for i in $(seq 1 60); do
-            if nc -z redis-session-master 6379; then
-              echo "Redis is ready!"
-              exit 0
-            fi
-            echo "Attempt $i/60..."
-            sleep 2
-          done
-          echo "Timeout waiting for Redis"
-          exit 1
-      
+        - name: wait-for-redis
+          image: busybox:1.28
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Redis..."
+              for i in $(seq 1 60); do
+                if nc -z redis-session-master 6379; then
+                  echo "Redis is ready!"
+                  exit 0
+                fi
+                echo "Attempt $i/60..."
+                sleep 2
+              done
+              echo "Timeout waiting for Redis"
+              exit 1
+
       containers:
-      - name: board-backend
-        image: 566644819993.dkr.ecr.ap-northeast-2.amazonaws.com/project_tomcat:final33
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-        
-        env:
-        - name: REDIS_HOST
-          value: "redis-session-master"
-        - name: REDIS_PORT
-          value: "6379"
-        - name: DB_URL
-          value: "jdbc:mariadb://10.0.2.125:3306/board_project_db?useUnicode=true&characterEncoding=UTF-8"
-        - name: DB_USER
-          value: "board_user"
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-board-secret
-              key: DB_PASSWORD
-        
-        # [추가됨] HikariCP 로그 레벨 DEBUG 설정 (커넥션 풀 상태 확인용)
-        - name: LOGGING_LEVEL_COM_ZAXXER_HIKARI
-          value: "DEBUG"
+        - name: board-backend
+          image: 566644819993.dkr.ecr.ap-northeast-2.amazonaws.com/project_tomcat:final33
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
 
-          name: SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD
-          value: "2000"
+          env:
+            - name: REDIS_HOST
+              value: "redis-session-master"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: DB_URL
+              value: "jdbc:mariadb://10.0.2.125:3306/board_project_db?useUnicode=true&characterEncoding=UTF-8"
+            - name: DB_USER
+              value: "board_user"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-board-secret
+                  key: DB_PASSWORD
+            - name: LOGGING_LEVEL_COM_ZAXXER_HIKARI
+              value: "DEBUG"
+            - name: SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD
+              value: "2000"
+            - name: LOGGING_LEVEL_COM_ZAXXER_HIKARI_POOL_HIKARIPOOL
+              value: "DEBUG"
+            - name: LOGGING_LEVEL_ROOT
+              value: "DEBUG"
 
-          name: LOGGING_LEVEL_COM_ZAXXER_HIKARI_POOL_HIKARIPOOL
-          value: "DEBUG"
+          resources:
+            requests:
+              cpu: "400m"
+              memory: "600Mi"
+            limits:
+              cpu: "600m"
+              memory: "600Mi"
 
-          name: LOGGING_LEVEL_ROOT  # 루트 로거 (모든 로그 다 켜기)
-          value: "DEBUG"
-        
-        resources:
-          requests:
-            cpu: "400m"
-            memory: "600Mi"
-          limits:
-            cpu: "600m"
-            memory: "600Mi"
-        
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 7
-          failureThreshold: 3
-        
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 8080
-          initialDelaySeconds: 50
-          periodSeconds: 15
-          timeoutSeconds: 10
-          failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 7
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 50
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 5
