@@ -13,6 +13,7 @@ spec:
       labels:
         app: frontend
     spec:
+      # [1] 토폴로지 분산
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
@@ -20,6 +21,17 @@ spec:
           labelSelector:
             matchLabels:
               app: frontend
+
+      # [2] 안티 어피니티
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: frontend
+                topologyKey: kubernetes.io/hostname
 
       imagePullSecrets:
         - name: ecr-secret
@@ -29,7 +41,7 @@ spec:
           image: 566644819993.dkr.ecr.ap-northeast-2.amazonaws.com/project_nginx:v2
           ports:
             - containerPort: 80
-
+          # ... (프로브, 리소스 설정 기존 유지) ...
           readinessProbe:
             tcpSocket:
               port: 80
@@ -37,7 +49,6 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 2
             failureThreshold: 2
-
           livenessProbe:
             tcpSocket:
               port: 80
@@ -45,7 +56,6 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
-
           resources:
             requests:
               cpu: "100m"
